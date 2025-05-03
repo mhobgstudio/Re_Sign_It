@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="jszip.min.js"></script>
+    <script src="html2canvas.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-Sign Translation App</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            backdrop-filter: blur(10px);
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: linear-gradient(135deg, #4285f4 0%, #357abd 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 12px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.2);
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(66, 133, 244, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .avatar-container {
+            margin: 30px 0;
+            text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        .translation-output {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e8e9eb 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            border: 1px solid rgba(66, 133, 244, 0.1);
+        }
+        .translation-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #2d3748;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #signing-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            width: 100%;
+        }
+        .virtual-keyboard {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .key {
+            width: 90px;
+            height: 90px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 8px;
+            background: #f8f9fa;
+            position: relative;
+            overflow: hidden;
+        }
+        .key:hover {
+            transform: translateY(-4px);
+            border-color: #4285f4;
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.2);
+        }
+        .key:active {
+            transform: translateY(0);
+        }
+        .key::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(66, 133, 244, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .key:hover::before {
+            opacity: 1;
+        }
+        .key:hover {
+            transform: scale(1.1);
+        }
+        .key img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+        .key:hover img {
+            transform: scale(1.05);
+        }
+        .social-share {
+            margin-top: 30px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        /* Tab Styles */
+        .tab-navigation {
+            display: flex;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            margin-right: 15px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: #666;
+            font-weight: 500;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .tab-btn:hover {
+            color: #4285f4;
+            transform: translateY(-2px);
+        }
+        .tab-btn.active {
+            color: #4285f4;
+            font-weight: 600;
+            position: relative;
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #4285f4 0%, #357abd 100%);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px;
+            background: #f8f9fa;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sign Language Translator</h1>
+        
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="text-to-sign">Text to Sign</button>
+            <button class="tab-btn" data-tab="sign-to-text">Sign to Text</button>
+        </div>
+
+        <!-- Text to Sign Tab Content -->
+        <div id="text-to-sign" class="tab-content active">
+            <p>Type text below to see it translated into sign language</p>
+            <textarea id="text-input" placeholder="Enter text to translate..."></textarea>
+            <div>
+                <button id="text-to-sign-btn">Translate</button>
+                <button id="clear-text-btn">Clear</button>
+            </div>
+            <div class="translation-output">
+                <div class="translation-title">Sign Language Translation</div>
+                <div class="avatar-container">
+                    <div id="signing-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sign to Text Tab Content -->
+        <div id="sign-to-text" class="tab-content">
+            <p>Click on the sign language images to create text</p>
+            <div class="virtual-keyboard" id="keyboard"></div>
+            <div>
+                <button id="sign-to-text-btn">Translate</button>
+                <button id="clear-sign-btn">Clear</button>
+            </div>
+            <textarea id="text-output" placeholder="Translated text will appear here..." readonly></textarea>
+        </div>
+
+        <div class="social-share">
+            <button id="share-btn">Share Translation</button>
+        </div>
+        
+        <!-- Share Modal -->
+        <div id="share-modal" class="modal">
+            <div class="modal-content">
+                <h2>Share Translation</h2>
+                <div id="share-content"></div>
+                <div class="share-options">
+                    <button id="copy-btn" class="share-btn">Copy Text</button>
+                    <button id="download-btn" class="share-btn">Download Images</button>
+                    <button id="close-modal" class="share-btn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: 50px auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .share-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .share-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #4285f4 0%, #357abd 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(66, 133, 244, 0.3);
+        }
+        #share-content {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .success-message {
+            color: #4CAF50;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+    </style>
+
+    <script>
+        const alphabetImages = {
+            'A': 'Alphabet_upscayled/A.png',
+            'B': 'Alphabet_upscayled/B.png',
+            'C': 'Alphabet_upscayled/C.png',
+            'D': 'Alphabet_upscayled/D.png',
+            'E': 'Alphabet_upscayled/E.png',
+            'F': 'Alphabet_upscayled/F.png',
+            'G': 'Alphabet_upscayled/G.png',
+            'H': 'Alphabet_upscayled/H.png',
+            'I': 'Alphabet_upscayled/I.png',
+            'J': 'Alphabet_upscayled/J.png',
+            'K': 'Alphabet_upscayled/K.png',
+            'L': 'Alphabet_upscayled/L.png',
+            'M': 'Alphabet_upscayled/M.png',
+            'N': 'Alphabet_upscayled/N.png',
+            'O': 'Alphabet_upscayled/O.png',
+            'P': 'Alphabet_upscayled/P.png',
+            'Q': 'Alphabet_upscayled/Q.png',
+            'R': 'Alphabet_upscayled/R.png',
+            'S': 'Alphabet_upscayled/S.png',
+            'T': 'Alphabet_upscayled/T.png',
+            'U': 'Alphabet_upscayled/U.png',
+            'V': 'Alphabet_upscayled/V.png',
+            'W': 'Alphabet_upscayled/W.png',
+            'X': 'Alphabet_upscayled/X.png',
+            'Y': 'Alphabet_upscayled/Y.png',
+            'Z': 'Alphabet_upscayled/Z.png',
+            ' ': 'Alphabet_upscayled/space.png'
+        };
+
+        // Share functionality
+        const shareBtn = document.getElementById('share-btn');
+        const modal = document.getElementById('share-modal');
+        const closeModal = document.getElementById('close-modal');
+        const copyBtn = document.getElementById('copy-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const shareContent = document.getElementById('share-content');
+
+        shareBtn.addEventListener('click', () => {
+            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+            let content = '';
+            
+            if (activeTab === 'text-to-sign') {
+                const text = document.getElementById('text-input').value;
+                const images = document.getElementById('signing-container').querySelectorAll('img');
+                content = `<p>Text: ${text}</p>`;
+                content += '<div class="sign-images">';
+                images.forEach(img => {
+                    content += `<img src="${img.src}" alt="${img.alt}">`;
+                });
+                content += '</div>';
+            } else {
+                const text = document.getElementById('text-output').value;
+                content = `<p>Sign Language Translation: ${text}</p>`;
+            }
+
+            shareContent.innerHTML = content;
+            modal.style.display = 'block';
+        });
+
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.onclick = (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        copyBtn.addEventListener('click', () => {
+            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+            let textToCopy = '';
+            
+            if (activeTab === 'text-to-sign') {
+                textToCopy = document.getElementById('text-input').value;
+            } else {
+                textToCopy = document.getElementById('text-output').value;
+            }
+
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    shareContent.innerHTML += '<div class="success-message">Text copied to clipboard!</div>';
+                })
+                .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+            const images = document.getElementById('signing-container').querySelectorAll('img');
+            
+            if (images.length === 0) {
+                alert('No images to download!');
+                return;
+            }
+
+            // Create a temporary container for the merged image
+            const tempContainer = document.createElement('div');
+            tempContainer.style.display = 'flex';
+            tempContainer.style.gap = '10px';
+            tempContainer.style.padding = '20px';
+            tempContainer.style.background = '#f8f9fa';
+            tempContainer.style.borderRadius = '10px';
+            
+            // Calculate total width and height
+            let totalWidth = 0;
+            const height = 80; // Fixed height for each image
+            
+            // Create smaller images and add to container
+            images.forEach(img => {
+                const newImg = new Image();
+                newImg.src = img.src;
+                newImg.width = 80; // Reduce size
+                newImg.height = height;
+                newImg.style.objectFit = 'contain';
+                tempContainer.appendChild(newImg);
+                totalWidth += newImg.width + 10; // Add gap
+            });
+            
+            // Add to body and make invisible
+            document.body.appendChild(tempContainer);
+            tempContainer.style.position = 'fixed';
+            tempContainer.style.top = '-9999px';
+            
+            // Use html2canvas to create merged image
+            const canvas = await html2canvas(tempContainer, {
+                scale: 2, // Increase resolution
+                useCORS: true
+            });
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'sign_language_translation.png';
+            link.click();
+            
+            // Clean up
+            document.body.removeChild(tempContainer);
+            URL.revokeObjectURL(link.href);
+        });
+
+        // Tab switching functionality
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all tabs
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked tab and its content
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Create virtual keyboard
+        const keyboard = document.getElementById('keyboard');
+        Object.entries(alphabetImages).forEach(([letter, imagePath]) => {
+            const key = document.createElement('div');
+            key.className = 'key';
+            key.innerHTML = `<img src="${imagePath}" alt="${letter}">`;
+            key.addEventListener('click', () => {
+                const textarea = document.getElementById('text-output');
+                const text = textarea.value;
+                if (letter === ' ') {
+                    textarea.value = text + ' ';
+                } else {
+                    textarea.value = text + letter;
+                }
+                textarea.focus();
+            });
+            keyboard.appendChild(key);
+        });
+
+        // Text to Sign translation
+        document.getElementById('text-to-sign-btn').addEventListener('click', () => {
+            const inputText = document.getElementById('text-input').value.toUpperCase();
+            const container = document.getElementById('signing-container');
+            container.innerHTML = '';
+
+            for (let i = 0; i < inputText.length; i++) {
+                const char = inputText[i];
+                if (alphabetImages[char]) {
+                    const img = document.createElement('img');
+                    img.src = alphabetImages[char];
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    container.appendChild(img);
+                }
+            }
+        });
+
+        // Sign to Text translation
+        document.getElementById('sign-to-text-btn').addEventListener('click', () => {
+            const output = document.getElementById('text-output').value;
+            const container = document.getElementById('signing-container');
+            container.innerHTML = '';
+
+            for (let i = 0; i < output.length; i++) {
+                const char = output[i];
+                if (alphabetImages[char]) {
+                    const img = document.createElement('img');
+                    img.src = alphabetImages[char];
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    container.appendChild(img);
+                }
+            }
+        });
+
+        // Clear functions
+        document.getElementById('clear-text-btn').addEventListener('click', () => {
+            document.getElementById('text-input').value = '';
+            document.getElementById('signing-container').innerHTML = '';
+        });
+
+        document.getElementById('clear-sign-btn').addEventListener('click', () => {
+            document.getElementById('text-output').value = '';
+            document.getElementById('signing-container').innerHTML = '';
+        });
+    </script>
+</body>
+</html>
