@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="jszip.min.js"></script>
-    <script src="html2canvas.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text-to-Sign Translation App</title>
@@ -264,73 +262,7 @@
         <div class="social-share">
             <button id="share-btn">Share Translation</button>
         </div>
-        
-        <!-- Share Modal -->
-        <div id="share-modal" class="modal">
-            <div class="modal-content">
-                <h2>Share Translation</h2>
-                <div id="share-content"></div>
-                <div class="share-options">
-                    <button id="copy-btn" class="share-btn">Copy Text</button>
-                    <button id="download-btn" class="share-btn">Download Images</button>
-                    <button id="close-modal" class="share-btn">Close</button>
-                </div>
-            </div>
-        </div>
     </div>
-
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 600px;
-            margin: 50px auto;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-        .share-options {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .share-btn {
-            flex: 1;
-            background: linear-gradient(135deg, #4285f4 0%, #357abd 100%);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .share-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(66, 133, 244, 0.3);
-        }
-        #share-content {
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        .success-message {
-            color: #4CAF50;
-            font-weight: 500;
-            margin-top: 10px;
-        }
-    </style>
 
     <script>
         const alphabetImages = {
@@ -362,119 +294,6 @@
             'Z': 'Alphabet_upscayled/Z.png',
             ' ': 'Alphabet_upscayled/space.png'
         };
-
-        // Share functionality
-        const shareBtn = document.getElementById('share-btn');
-        const modal = document.getElementById('share-modal');
-        const closeModal = document.getElementById('close-modal');
-        const copyBtn = document.getElementById('copy-btn');
-        const downloadBtn = document.getElementById('download-btn');
-        const shareContent = document.getElementById('share-content');
-
-        shareBtn.addEventListener('click', () => {
-            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
-            let content = '';
-            
-            if (activeTab === 'text-to-sign') {
-                const text = document.getElementById('text-input').value;
-                const images = document.getElementById('signing-container').querySelectorAll('img');
-                content = `<p>Text: ${text}</p>`;
-                content += '<div class="sign-images">';
-                images.forEach(img => {
-                    content += `<img src="${img.src}" alt="${img.alt}">`;
-                });
-                content += '</div>';
-            } else {
-                const text = document.getElementById('text-output').value;
-                content = `<p>Sign Language Translation: ${text}</p>`;
-            }
-
-            shareContent.innerHTML = content;
-            modal.style.display = 'block';
-        });
-
-        closeModal.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-
-        window.onclick = (event) => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        };
-
-        copyBtn.addEventListener('click', () => {
-            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
-            let textToCopy = '';
-            
-            if (activeTab === 'text-to-sign') {
-                textToCopy = document.getElementById('text-input').value;
-            } else {
-                textToCopy = document.getElementById('text-output').value;
-            }
-
-            navigator.clipboard.writeText(textToCopy)
-                .then(() => {
-                    shareContent.innerHTML += '<div class="success-message">Text copied to clipboard!</div>';
-                })
-                .catch(err => {
-                    console.error('Failed to copy text: ', err);
-                });
-        });
-
-        downloadBtn.addEventListener('click', async () => {
-            const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
-            const images = document.getElementById('signing-container').querySelectorAll('img');
-            
-            if (images.length === 0) {
-                alert('No images to download!');
-                return;
-            }
-
-            // Create a temporary container for the merged image
-            const tempContainer = document.createElement('div');
-            tempContainer.style.display = 'flex';
-            tempContainer.style.gap = '10px';
-            tempContainer.style.padding = '20px';
-            tempContainer.style.background = '#f8f9fa';
-            tempContainer.style.borderRadius = '10px';
-            
-            // Calculate total width and height
-            let totalWidth = 0;
-            const height = 80; // Fixed height for each image
-            
-            // Create smaller images and add to container
-            images.forEach(img => {
-                const newImg = new Image();
-                newImg.src = img.src;
-                newImg.width = 80; // Reduce size
-                newImg.height = height;
-                newImg.style.objectFit = 'contain';
-                tempContainer.appendChild(newImg);
-                totalWidth += newImg.width + 10; // Add gap
-            });
-            
-            // Add to body and make invisible
-            document.body.appendChild(tempContainer);
-            tempContainer.style.position = 'fixed';
-            tempContainer.style.top = '-9999px';
-            
-            // Use html2canvas to create merged image
-            const canvas = await html2canvas(tempContainer, {
-                scale: 2, // Increase resolution
-                useCORS: true
-            });
-            
-            // Create download link
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL('image/png');
-            link.download = 'sign_language_translation.png';
-            link.click();
-            
-            // Clean up
-            document.body.removeChild(tempContainer);
-            URL.revokeObjectURL(link.href);
-        });
 
         // Tab switching functionality
         const tabBtns = document.querySelectorAll('.tab-btn');
